@@ -22,16 +22,16 @@ int main(int argc, char * argv[])
    ROOT::RDataFrame df_evt = ROOT::RDataFrame("Events",filename.c_str());
    ROOT::RDataFrame df_run = ROOT::RDataFrame("Runs",filename.c_str());
    
-   // // READOUT mode
-   // // Making a list of the readout mode to be excluded
-   // std::string remove_readout = cfg_readout_mode_ == "DECO" ? "PEAK" : "DECO";
-   // ROOT::RDF::RResultPtr<std::vector<Long64_t> > runs_remove;
-   // if ( cfg_readout_ != "" )
-   // {
-   //    ROOT::RDataFrame df_readout = ROOT::RDF::MakeCsvDataFrame(cfg_readout_.c_str());
-   //    auto df_readout_remove = df_readout.Filter(Form("mode == \"%s\"",remove_readout.c_str()));
-   //    runs_remove = df_readout_remove.Take<Long64_t>("run");
-   // }
+   // READOUT mode
+   // Making a list of the readout mode to be excluded
+   std::string remove_readout = cfg_readout_mode_ == "DECO" ? "PEAK" : "DECO";
+   ROOT::RDF::RResultPtr<std::vector<Long64_t> > runs_remove;
+   if ( cfg_readout_ != "" )
+   {
+      ROOT::RDataFrame df_readout = ROOT::RDF::FromCSV(cfg_readout_.c_str());
+      auto df_readout_remove = df_readout.Filter(Form("mode == \"%s\"",remove_readout.c_str()));
+      runs_remove = df_readout_remove.Take<Long64_t>("run");
+   }
    
    // *** Process Run information - input to Event ***
    
@@ -72,15 +72,6 @@ int main(int argc, char * argv[])
       return is_good;
    };
 
-//    // flag good tracks at 0 Tesla - selection parameters captured
-//    auto track_good_0T = [](const rvec_i & hitsvalid, const rvec_f & chi2ndof)
-//    {
-//       rvec_b is_good;
-//       for ( size_t t = 0; t < hitsvalid.size() ; ++t )
-//          is_good.push_back(hitsvalid[t] >= cfg_hitsmin_ && chi2ndof[t] < cfg_chi2max_);
-//       return is_good;
-//    };
-// 
    // Convert to common type RNode
    /* "The conversion to ROOT::RDF::RNode is cheap, but it will introduce an extra virtual 
    call during the RDataFrame event loop (in most cases, the resulting performance impact 
@@ -99,13 +90,13 @@ int main(int argc, char * argv[])
    std::string run_range = Form("%d-%d",irun,frun);
    if ( run > 0 && irun<0 && frun<0 )
       run_range = Form("%d",run);
-   // if ( cfg_readout_ != "" )
-   //    run_selection.title += Form(" (excluding runs in %s mode)",remove_readout.c_str());
+   if ( cfg_readout_ != "" )
+      run_selection.title += Form(" (excluding runs in %s mode)",remove_readout.c_str());
    // Remove runs with non-desired readout more
-   // if ( runs_remove )
-   // {
-   //    for ( auto & rr : runs_remove )  df_evt_1 = df_evt_1.Filter(Form("run!=%lld",rr));
-   // }
+   if ( runs_remove )
+   {
+      for ( auto & rr : runs_remove )  df_evt_1 = df_evt_1.Filter(Form("run!=%lld",rr));
+   }
    df_evt_1 = df_evt_1.Filter(run_selection.filter,run_selection.title);
       
    // Magnetic field filter
