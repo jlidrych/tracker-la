@@ -28,7 +28,7 @@ int main(int argc, char * argv[])
    ROOT::RDF::RResultPtr<std::vector<Long64_t> > runs_remove;
    if ( cfg_readout_ != "" )
    {
-      ROOT::RDataFrame df_readout = ROOT::RDF::MakeCsvDataFrame(cfg_readout_.c_str());
+      ROOT::RDataFrame df_readout = ROOT::RDF::FromCSV(cfg_readout_.c_str());
       auto df_readout_remove = df_readout.Filter(Form("mode == \"%s\"",remove_readout.c_str()));
       runs_remove = df_readout_remove.Take<Long64_t>("run");
    }
@@ -72,15 +72,6 @@ int main(int argc, char * argv[])
       return is_good;
    };
 
-//    // flag good tracks at 0 Tesla - selection parameters captured
-//    auto track_good_0T = [](const rvec_i & hitsvalid, const rvec_f & chi2ndof)
-//    {
-//       rvec_b is_good;
-//       for ( size_t t = 0; t < hitsvalid.size() ; ++t )
-//          is_good.push_back(hitsvalid[t] >= cfg_hitsmin_ && chi2ndof[t] < cfg_chi2max_);
-//       return is_good;
-//    };
-// 
    // Convert to common type RNode
    /* "The conversion to ROOT::RDF::RNode is cheap, but it will introduce an extra virtual 
    call during the RDataFrame event loop (in most cases, the resulting performance impact 
@@ -130,10 +121,6 @@ int main(int argc, char * argv[])
    
    
    // Good tracks
-//    if ( cfg_bfield_ == 0 )
-//       df_evt_1 = df_evt_1
-//          .Define(Form("%strack_good",refit) ,track_good_0T ,{Form("%strack_hitsvalid",refit),"track_chi2ndof"});
-//    else
    df_evt_1 = df_evt_1
       .Define(Form("%strack_good",refit) ,track_good    ,{Form("%strack_pt",refit),Form("%strack_hitsvalid",refit),Form("%strack_chi2ndof",refit)});
    
@@ -186,12 +173,6 @@ int main(int argc, char * argv[])
    std::map<std::string, RResultPtr<::TH2D > > h2d;
    std::map<std::string, RResultPtr<::TProfile > > hpf;
    
-//    hmod1d["seltrack_n"]                = TH1DModel("seltrack_n","",20, 0, 20);
-//    hmod1d["seltrack_pt"]               = TH1DModel("seltrack_pt","",200, 0, 200);
-//    hmod1d["seltrack_eta"]              = TH1DModel("seltrack_eta","",50, -2.5, 2.5);
-//    hmod1d["seltrack_phi"]              = TH1DModel("seltrack_phi","",64, -3.2, 3.2);
-//    hmod1d["seltrack_chi2ndof"]         = TH1DModel("seltrack_chi2ndof","",200, 0, 20);
-//    hmod1d["seltrack_hitsvalid"]        = TH1DModel("seltrack_hitsvalid","",50, 0, 50);
    hmod1d["seltrack_n"]                = TH1DModel("seltrack_n","",1000, 0, 1000);
    hmod1d["seltrack_pt"]               = TH1DModel("seltrack_pt","",2000, 0,1000);
    hmod1d["seltrack_eta"]              = TH1DModel("seltrack_eta","",100, -4, 4);
@@ -220,7 +201,6 @@ int main(int argc, char * argv[])
       const char * location = Form("selcluster_location_type == \"%s\"",layer);
       df_evt_1 = df_evt_1
          .Define(layers[l]+"_nstrips"     , Form("selcluster_nstrips[%s]"   ,location))
-//         .Filter(layers[l]+"_nstrips.size()>0")
          .Define(layers[l]+"_thetatrack"   , Form("selcluster_thetatrack[%s]",location))
          .Define(layers[l]+"_tanthetatrack", Form("selcluster_tanthetatrack[%s]",location))
          .Define(layers[l]+"_trackindex"   , Form("selcluster_trackindex[%s]",location))
