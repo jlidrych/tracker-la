@@ -22,16 +22,16 @@ int main(int argc, char * argv[])
    ROOT::RDataFrame df_evt = ROOT::RDataFrame("Events",filename.c_str());
    ROOT::RDataFrame df_run = ROOT::RDataFrame("Runs",filename.c_str());
    
-   // READOUT mode
-   // Making a list of the readout mode to be excluded
-   std::string remove_readout = cfg_readout_mode_ == "DECO" ? "PEAK" : "DECO";
-   ROOT::RDF::RResultPtr<std::vector<Long64_t> > runs_remove;
-   if ( cfg_readout_ != "" )
-   {
-      ROOT::RDataFrame df_readout = ROOT::RDF::MakeCsvDataFrame(cfg_readout_.c_str());
-      auto df_readout_remove = df_readout.Filter(Form("mode == \"%s\"",remove_readout.c_str()));
-      runs_remove = df_readout_remove.Take<Long64_t>("run");
-   }
+   // // READOUT mode
+   // // Making a list of the readout mode to be excluded
+   // std::string remove_readout = cfg_readout_mode_ == "DECO" ? "PEAK" : "DECO";
+   // ROOT::RDF::RResultPtr<std::vector<Long64_t> > runs_remove;
+   // if ( cfg_readout_ != "" )
+   // {
+   //    ROOT::RDataFrame df_readout = ROOT::RDF::MakeCsvDataFrame(cfg_readout_.c_str());
+   //    auto df_readout_remove = df_readout.Filter(Form("mode == \"%s\"",remove_readout.c_str()));
+   //    runs_remove = df_readout_remove.Take<Long64_t>("run");
+   // }
    
    // *** Process Run information - input to Event ***
    
@@ -99,13 +99,13 @@ int main(int argc, char * argv[])
    std::string run_range = Form("%d-%d",irun,frun);
    if ( run > 0 && irun<0 && frun<0 )
       run_range = Form("%d",run);
-   if ( cfg_readout_ != "" )
-      run_selection.title += Form(" (excluding runs in %s mode)",remove_readout.c_str());
+   // if ( cfg_readout_ != "" )
+   //    run_selection.title += Form(" (excluding runs in %s mode)",remove_readout.c_str());
    // Remove runs with non-desired readout more
-   if ( runs_remove )
-   {
-      for ( auto & rr : runs_remove )  df_evt_1 = df_evt_1.Filter(Form("run!=%lld",rr));
-   }
+   // if ( runs_remove )
+   // {
+   //    for ( auto & rr : runs_remove )  df_evt_1 = df_evt_1.Filter(Form("run!=%lld",rr));
+   // }
    df_evt_1 = df_evt_1.Filter(run_selection.filter,run_selection.title);
       
    // Magnetic field filter
@@ -130,10 +130,6 @@ int main(int argc, char * argv[])
    
    
    // Good tracks
-//    if ( cfg_bfield_ == 0 )
-//       df_evt_1 = df_evt_1
-//          .Define(Form("%strack_good",refit) ,track_good_0T ,{Form("%strack_hitsvalid",refit),"track_chi2ndof"});
-//    else
    df_evt_1 = df_evt_1
       .Define(Form("%strack_good",refit) ,track_good    ,{Form("%strack_pt",refit),Form("%strack_hitsvalid",refit),Form("%strack_chi2ndof",refit)});
    
@@ -186,12 +182,6 @@ int main(int argc, char * argv[])
    std::map<std::string, RResultPtr<::TH2D > > h2d;
    std::map<std::string, RResultPtr<::TProfile > > hpf;
    
-//    hmod1d["seltrack_n"]                = TH1DModel("seltrack_n","",20, 0, 20);
-//    hmod1d["seltrack_pt"]               = TH1DModel("seltrack_pt","",200, 0, 200);
-//    hmod1d["seltrack_eta"]              = TH1DModel("seltrack_eta","",50, -2.5, 2.5);
-//    hmod1d["seltrack_phi"]              = TH1DModel("seltrack_phi","",64, -3.2, 3.2);
-//    hmod1d["seltrack_chi2ndof"]         = TH1DModel("seltrack_chi2ndof","",200, 0, 20);
-//    hmod1d["seltrack_hitsvalid"]        = TH1DModel("seltrack_hitsvalid","",50, 0, 50);
    hmod1d["seltrack_n"]                = TH1DModel("seltrack_n","",1000, 0, 1000);
    hmod1d["seltrack_pt"]               = TH1DModel("seltrack_pt","",2000, 0,1000);
    hmod1d["seltrack_eta"]              = TH1DModel("seltrack_eta","",100, -4, 4);
@@ -220,7 +210,6 @@ int main(int argc, char * argv[])
       const char * location = Form("selcluster_location_type == \"%s\"",layer);
       df_evt_1 = df_evt_1
          .Define(layers[l]+"_nstrips"     , Form("selcluster_nstrips[%s]"   ,location))
-//         .Filter(layers[l]+"_nstrips.size()>0")
          .Define(layers[l]+"_thetatrack"   , Form("selcluster_thetatrack[%s]",location))
          .Define(layers[l]+"_tanthetatrack", Form("selcluster_tanthetatrack[%s]",location))
          .Define(layers[l]+"_trackindex"   , Form("selcluster_trackindex[%s]",location))
