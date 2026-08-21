@@ -2,6 +2,7 @@
 #include "LAMonitorConfig.h"
 #include "ROOT/RDFHelpers.hxx"
 #include "ROOT/RCsvDS.hxx"
+#include <correction.h>
 
 int main(int argc, char * argv[])
 {
@@ -17,6 +18,9 @@ int main(int argc, char * argv[])
       std::cout << "Multi-threading enabled" << std::endl; 
    }
    
+   auto cset = correction::CorrectionSet::from_file(cfg_jsonFile_.c_str());
+   const auto lumiCorr = cset->at("totalIntgRecLumi");
+
    // Read Events and Runs dataframes
    std::string filename = cfg_calibTreeDir_+"/calibTree*.root";
    ROOT::RDataFrame df_evt = ROOT::RDataFrame("Events",filename.c_str());
@@ -119,7 +123,28 @@ int main(int argc, char * argv[])
       .Filter("ncluster>0"  ,"Clusters >= 1")
    ;
    
-   
+   df_evt_1 = df_evt_1.Define(
+      "totalIntgRecLumi",
+      [lumiCorr](
+            unsigned int run,
+            unsigned int luminosityBlock
+        ) {
+            return lumiCorr->evaluate(
+                {
+                    static_cast<double>(run),
+                    static_cast<double>(luminosityBlock)
+                }
+            );
+        },
+        {
+            "run",
+            "luminosityBlock"
+        }
+   );
+   auto min_intLumi = int(*df_evt_1.Min("totalIntgRecLumi"));
+   auto max_intLumi = int(*df_evt_1.Max("totalIntgRecLumi")) + 1;
+   auto nBinsLumi = max_intLumi - min_intLumi;
+
    // Good tracks
    df_evt_1 = df_evt_1
       .Define(Form("%strack_good",refit) ,track_good    ,{Form("%strack_pt",refit),Form("%strack_hitsvalid",refit),Form("%strack_chi2ndof",refit)});
@@ -168,9 +193,11 @@ int main(int argc, char * argv[])
    
    std::map<std::string, TH1DModel> hmod1d;
    std::map<std::string, TH2DModel> hmod2d;
+   std::map<std::string, TH3DModel> hmod3d;
    std::map<std::string, TProfile1DModel> hmodpf;
    std::map<std::string, RResultPtr<::TH1D > > h1d;
    std::map<std::string, RResultPtr<::TH2D > > h2d;
+   std::map<std::string, RResultPtr<::TH3D > > h3d;
    std::map<std::string, RResultPtr<::TProfile > > hpf;
    
    hmod1d["seltrack_n"]                = TH1DModel("seltrack_n","",1000, 0, 1000);
@@ -211,6 +238,8 @@ int main(int argc, char * argv[])
       hmod1d[Form("%s_tanthetatrack",layer)]          = TH1DModel(Form("%s_tanthetatrack",layer),"",360, -0.9, 0.9);
       hmod2d[Form("%s_thetatrack_nstrips",layer)]     = TH2DModel(Form("%s_thetatrack_nstrips",layer),"",360, -0.9, 0.9, 20, 0, 20);
       hmod2d[Form("%s_tanthetatrack_nstrips",layer)]  = TH2DModel(Form("%s_tanthetatrack_nstrips",layer),"",360, -0.9, 0.9, 20, 0, 20);
+      hmod3d[Form("%s_thetatrack_nstrips_intLumi",layer)] = TH3DModel(Form("%s_thetatrack_nstrips_intLumi",layer),"",360, -0.9, 0.9, 20, 0, 20, nBinsLumi, min_intLumi, max_intLumi);
+      hmod3d[Form("%s_tanthetatrack_nstrips_intLumi",layer)] = TH3DModel(Form("%s_tanthetatrack_nstrips_intLumi",layer),"",360, -0.9, 0.9, 20, 0, 20, nBinsLumi, min_intLumi, max_intLumi);
       hmodpf[Form("%s_thetatrack_nstrips_pfx",layer)] = TProfile1DModel(Form("%s_thetatrack_nstrips_pfx",layer),"",360, -0.9, 0.9);
       hmodpf[Form("%s_tanthetatrack_nstrips_pfx",layer)] = TProfile1DModel(Form("%s_tanthetatrack_nstrips_pfx",layer),"",360, -0.9, 0.9);
       
@@ -220,6 +249,8 @@ int main(int argc, char * argv[])
       h1d[Form("%s_tanthetatrack",layer)]          = df_evt_1.Histo1D(hmod1d[Form("%s_tanthetatrack",layer)],Form("%s_tanthetatrack",layer));
       h2d[Form("%s_thetatrack_nstrips",layer)]     = df_evt_1.Histo2D(hmod2d[Form("%s_thetatrack_nstrips",layer)],Form("%s_thetatrack",layer),Form("%s_nstrips",layer));
       h2d[Form("%s_tanthetatrack_nstrips",layer)]  = df_evt_1.Histo2D(hmod2d[Form("%s_tanthetatrack_nstrips",layer)],Form("%s_tanthetatrack",layer),Form("%s_nstrips",layer));
+      h3d[Form("%s_thetatrack_nstrips_intLumi",layer)] = df_evt_1.Histo3D(hmod3d[Form("%s_thetatrack_nstrips_intLumi",layer)],Form("%s_thetatrack",layer),Form("%s_nstrips",layer), "totalIntgRecLumi");
+      h3d[Form("%s_tanthetatrack_nstrips_intLumi",layer)] = df_evt_1.Histo3D(hmod3d[Form("%s_tanthetatrack_nstrips_intLumi",layer)],Form("%s_tanthetatrack",layer),Form("%s_nstrips",layer), "totalIntgRecLumi");
       hpf[Form("%s_thetatrack_nstrips_pfx",layer)] = df_evt_1.Profile1D(hmodpf[Form("%s_thetatrack_nstrips_pfx",layer)],Form("%s_thetatrack",layer),Form("%s_nstrips",layer));
       hpf[Form("%s_tanthetatrack_nstrips_pfx",layer)] = df_evt_1.Profile1D(hmodpf[Form("%s_tanthetatrack_nstrips_pfx",layer)],Form("%s_tanthetatrack",layer),Form("%s_nstrips",layer));
       
@@ -229,6 +260,8 @@ int main(int argc, char * argv[])
       h1d[Form("%s_tanthetatrack",layer)] -> Write();
       h2d[Form("%s_thetatrack_nstrips",layer)] -> Write();
       h2d[Form("%s_tanthetatrack_nstrips",layer)] -> Write();
+      h3d[Form("%s_thetatrack_nstrips_intLumi",layer)] -> Write();
+      h3d[Form("%s_tanthetatrack_nstrips_intLumi",layer)] -> Write();
       hpf[Form("%s_thetatrack_nstrips_pfx",layer)] -> Write();
       hpf[Form("%s_tanthetatrack_nstrips_pfx",layer)] -> Write();
    }

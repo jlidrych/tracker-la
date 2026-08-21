@@ -22,6 +22,7 @@ int cfg_bfield_;
 
 std::string cfg_outputfile_;
 std::string cfg_calibTreeDir_;
+std::string cfg_jsonFile_;
 std::string cfg_readout_;
 std::string cfg_readout_mode_;
 std::string cfg_fit_;
@@ -48,6 +49,7 @@ int LAMonitorConfig(int argc, char * argv[])
          ("config,c",po::value<std::string>(&cfg_),"Configuration file name")
          ("multi_thread",po::value <bool> (&cfg_mt_), "Use multi-thread")
          ("tree_dir",po::value<std::string>(&cfg_calibTreeDir_),"Direcotry of the calibTree files")
+         ("jsonFile",po::value<std::string>(&cfg_jsonFile_),"Path to the json file")
          ("run",po::value<int>(&cfg_run_),"Run number")
          ("initial_run",po::value <int> (&cfg_initial_run_), "Initial run number")
          ("final_run",po::value <int> (&cfg_final_run_), "Final run number")
@@ -61,6 +63,7 @@ int LAMonitorConfig(int argc, char * argv[])
          ("finalRun",po::value <int> (&cfg_final_run_)->default_value(-1), "Final run number")
          ("bField",po::value <int> (&cfg_bfield_)->default_value(4), "Magnetic field")
          ("calibTreeDirectory",po::value <std::string> (&cfg_calibTreeDir_)->default_value("/nfs/dust/cms/user/walsh/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/Cosmics18Legacy/nanotest3/2018D"),"Direcotry of the calibTree files")
+         ("jsonFile", po::value <std::string> (&cfg_jsonFile_)->default_value("./run3_lumi.json.gz"), "Path to the json file")
          ("readoutList",po::value <std::string> (&cfg_readout_)->default_value(""))
          ("readoutMode",po::value <std::string> (&cfg_readout_mode_)->default_value("DECO"))
          ("trackFit",po::value <std::string> (&cfg_fit_)->default_value(""))
